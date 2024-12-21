@@ -23,10 +23,10 @@ df1 = dataset.drop_duplicates()
 
 # Dropping rows without target values
 df1 = df1.dropna(subset = 'audience_rating')
-df1.info()
+df1.info() # verifying changes
 
 # AutoEDA using Dtale
-dtale.show(df1).open_browser()
+dtale.show(df1).open_browser() 
 
 # Dropping rows with missing runtime and selecting relevant columns
 df2 = df1.dropna(subset = 'runtime_in_minutes')
@@ -62,7 +62,7 @@ preprocess_pipe = Pipeline(steps = [('label_encode', FunctionTransformer(lambda 
 
 preprocessor = ColumnTransformer(transformers = [('numerical', preprocess_pipe, column_names)])
 
-# Train-Test Split
+# Train-Test Split (70% training, 30% testing)
 X = df2.drop(columns = 'audience_rating')
 y = df2['audience_rating']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.3, random_state = 20)
@@ -83,10 +83,10 @@ test_pred = xgb_model.predict(X_test)
 test_rmse = np.sqrt(mean_squared_error(y_test, test_pred))
 test_r2 = r2_score(y_test, test_pred)
 
-print(f'Train RMSE: {train_rmse}')
-print(f'Train R²: {train_r2}')
-print(f'Test RMSE: {test_rmse}')
-print(f'Test R²: {test_r2}')
+print(f'Train RMSE: {train_rmse}') # Train RMSE : 9.16 - on average, model predictions are off by about 9.17 ratings 
+print(f'Train R²: {train_r2}') # Train R² : 0.79 - model explains variance in the training set well
+print(f'Test RMSE: {test_rmse}') # Test RMSE : 15.54 - poor generalization
+print(f'Test R²: {test_r2}') # Test R² : 0.41 - much lower than Train R². possible overfitting
 
 # Hyperparameter tuning
 param_dist = {'regress__n_estimators': randint(100, 500),
@@ -117,10 +117,12 @@ test_pred_random = best_xgb_model_random.predict(X_test)
 test_rmse_random = np.sqrt(mean_squared_error(y_test, test_pred_random))
 test_r2_random = r2_score(y_test, test_pred_random)
 
-print(f'Train RMSE (RandomizedSearchCV): {train_rmse_random}')
-print(f'Train R² (RandomizedSearchCV): {train_r2_random}')
-print(f'Test RMSE (RandomizedSearchCV): {test_rmse_random}')
-print(f'Test R² (RandomizedSearchCV): {test_r2_random}')
+print(f'Train RMSE (RandomizedSearchCV): {train_rmse_random}') # Train RMSE : 13.67 - previously 9.17 
+print(f'Train R² (RandomizedSearchCV): {train_r2_random}') # Train R² : 0.55 - model explains 55% variance in the training set
+print(f'Test RMSE (RandomizedSearchCV): {test_rmse_random}') # Test RMSE : 14.62 - closer to Train RMSE
+print(f'Test R² (RandomizedSearchCV): {test_r2_random}') # Test R² : 0.48 - closer to Train R²
+
+# Model is not overfitting
 
 # Final pipeline with best hyperparameters
 final_pipeline = Pipeline(steps=[('preprocess', preprocessor),
@@ -132,20 +134,8 @@ final_pipeline = Pipeline(steps=[('preprocess', preprocessor),
 # Training final model
 final_pipeline.fit(X_train, y_train)
 
-# Final model evaluation
-final_train_pred = final_pipeline.predict(X_train)
-final_test_pred = final_pipeline.predict(X_test)
-
-final_train_rmse = np.sqrt(mean_squared_error(y_train, final_train_pred))
-final_train_r2 = r2_score(y_train, final_train_pred)
-
-final_test_rmse = np.sqrt(mean_squared_error(y_test, final_test_pred))
-final_test_r2 = r2_score(y_test, final_test_pred)
-
-print(f'Final Train RMSE: {final_train_rmse}')
-print(f'Final Train R²: {final_train_r2}')
-print(f'Final Test RMSE: {final_test_rmse}')
-print(f'Final Test R²: {final_test_r2}')
+# Slight difference between Train and Test metrices suggests the model is not overfitting.
+# For a target range of 0-100, the model is off by approximately 13 to 14.
 
 
 
